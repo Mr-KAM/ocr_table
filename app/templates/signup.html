@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{%block title%}Signup{%endblock%}
+{% block main_content %}
+<div class="flex flex-col max-w-screen max-h-full h-screen justify-center items-center p-2">
+
+    <div class="flex justify-center card">
+
+    <form method="POST" action="{{ url_for('signup') }}" enctype="multipart/form-data" class="form form-horizontal flex flex-col card" name="registerform">
+        <fieldset class="card fieldset w-xs bg-base-200 border border-base-300 p-4 rounded-box">
+        {{ form.hidden_tag() }}
+        <legend class="fieldset-legend">Inscription</legend>
+            {{ form.user.label(class="fieldset-label") }}
+            {{ form.user(class="input", placeholder="Utilisateur") }}
+            {% if form.user.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.user.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+
+            {{ form.name.label(class="fieldset-label") }}
+            {{ form.name(class="input", placeholder="Nom et prenoms") }}
+
+            {{ form.email.label(class="fieldset-label") }}
+            {{ form.email(class="input", placeholder="Adresse email") }}
+            {% if form.email.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.email.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {{ form.telephone.label(class="fieldset-label") }}
+            {{ form.telephone(class="input", placeholder="Numéro de téléphone") }}
+
+            {{ form.password.label(class="fieldset-label") }}
+            {{ form.password(class="input", placeholder="Mot de passe") }}
+            {% if form.password.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.password.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {{ form.confirm_password.label(class="fieldset-label") }}
+            {{ form.confirm_password(class="input", placeholder="Confirmer le mot de passe") }}
+            {% if form.confirm_password.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.confirm_password.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        <button type="submit" class="btn btn-neutral mt-3">S'inscrire</button>
+    </fieldset>
+    </form>
+</div>
+<br/>
+    <a href='{{url_for("login")}}' class="link text-primary">Déjà un compte ? <b>Connectez-vous ?</b></a>
+{% endblock %}

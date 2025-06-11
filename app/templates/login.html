@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{%block title%}Login{%endblock%}
+
+{%block main_content%}
+<div class="flex flex-col max-w-screen max-h-full h-screen justify-center items-center p-2">
+
+    <div class="flex justify-center">
+        <form action="." method="post" class="card form form-horizontal flex flex-col" name="loginform">
+            <fieldset class="fieldset w-xs bg-base-200 border border-base-300 p-4 rounded-box card">
+                <legend class="fieldset-legend">Connexion</legend>
+
+                <label class="fieldset-label">Utilisateur</label>
+                <input type="email" class="input" placeholder="Email" name="username"/>
+
+                <label class="fieldset-label">Mot de passe</label>
+                <input type="password" class="input" placeholder="Password" name="password"/>
+                <button class="btn btn-neutral mt-4">Connexion</button>
+              </fieldset>
+        </form>
+
+    </div>
+    <br/>
+    <a href='{{url_for("signup")}}' class="link text-primary">Pas de compte ? <b>Creez un nouuveau !</b></a>
+</div>
+
+{%endblock%}
