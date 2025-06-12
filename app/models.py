@@ -1,5 +1,7 @@
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -47,27 +49,29 @@ class Salle(db.Model):
     def __repr__(self):
         return '<Salle %r>' % (self.name)
 
+class Note(db.Model):
+    __tablename__ = 'notes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    filiere = db.Column(db.String(500))
+    classe = db.Column(db.String(500))
+    annee_academique = db.Column(db.String(500))
+    enseignant = db.Column(db.String(500))
+    ue = db.Column(db.String(500))
+    ecue = db.Column(db.String(500))
+    nom_etudiant = db.Column(db.String(500))
+    matricule_etudiant = db.Column(db.String(500))
+    moyenne = db.Column(db.Float)
+    rang_matiere = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"Note(classe='{self.classe}', enseignant='{self.enseignant}', ue='{self.ue}', ecue='{self.ecue}', nom_etudiant='{self.nom_etudiant}', matricule_etudiant='{self.matricule_etudiant}', moyenne={self.moyenne}, rang_matiere={self.rang_matiere})"
+
 
 # from sqlalchemy import create_engine, Column, Integer, String, Float
 # from sqlalchemy.ext.declarative import declarative_base
 # from sqlalchemy.orm import sessionmaker
 
-# Base = declarative_base()
-
-# class Note(Base):
-#     __tablename__ = 'notes'
-
-#     id = Column(Integer, primary_key=True)
-#     classe = Column(String)
-#     enseignant = Column(String)
-#     ue = Column(String)
-#     ecue = Column(String)
-#     nom_etudiant = Column(String)
-#     matricule_etudiant = Column(String)
-#     moyenne = Column(Float)
-#     rang_matiere = Column(Integer)
-
-#     def __repr__(self):
-#         return f"Note(classe='{self.classe}', enseignant='{self.enseignant}', ue='{self.ue}', ecue='{self.ecue}', nom_etudiant='{self.nom_etudiant}', matricule_etudiant='{self.matricule_etudiant}', moyenne={self.moyenne}, rang_matiere={self.rang_matiere})"
 
 # if __name__ == '__main__':

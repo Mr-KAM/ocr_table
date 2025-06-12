@@ -4,20 +4,14 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Extracteur de Tableau d'Image vers Excel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Last app -->
     <link href="{{url_for('static', filename='node_modules/daisyui/daisyui.css')}}" rel="stylesheet" type="text/css" />
     <link href="{{url_for('static', filename='node_modules/daisyui/themes.css')}}" rel="stylesheet" type="text/css" />
     <script src="{{url_for('static', filename='node_modules/daisyui/imports.js')}}"></script>
     <script src="{{url_for('static', filename='js/tailwinds.js')}}"></script>
-
-    <!-- New app -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{url_for('static', filename='css/index.css')}}">
+    <title>
+        {{title}}
+    </title>
 </head>
 
 <body>
@@ -36,14 +30,10 @@
                     </svg>
                 </div>
                 <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow">
-                    <!-- <li><a>⚙️ Configuration</a></li>
+                    <li><a>⚙️ Configuration</a></li>
                     <li><a onclick="about_modal.showModal()">❔A-propos</a></li>
-                    <li><a href="/gemini">⚙️ Conversion</a></li> -->
-                    <li><a href="/"> Accueil</a></li>
-                    <li><a href="/extraction"> Extraction</a></li>
-                    {% if current_user.is_authenticated %}
-                        <a href="{{ url_for('logout') }}">Se déconnecter</a>
-                    {% endif %}
+                    <li><a href="/gemini">⚙️ Conversion</a></li>
+                     <li><a href="/extraction"> Extraction</a></li>
 
                 </ul>
             </div>

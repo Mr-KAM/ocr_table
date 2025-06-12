@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-T">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extracteur de Tableau d'Image vers Excel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Custom scrollbar for table preview */
+        .table-preview-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .table-preview-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .table-preview-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        .table-preview-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Ensure table cells don't break words awkwardly */
+        .preview-table td, .preview-table th {
+            white-space: nowrap;
+            padding: 0.5rem 0.75rem; /* Tailwind p-2 px-3 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-2xl">
+        <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6 sm:mb-8">
+            Extracteur de Tableau d'Image vers Excel
+        </h1>
+        <form action="/add_note" method="post">
+            Classe: <input type="text" name="classe"><br>
+            Enseignant: <input type="text" name="enseignant"><br>
+            UE: <input type="text" name="ue"><br>
+            ECUE: <input type="text" name="ecue"><br>
+            Nom Etudiant: <input type="text" name="nom_etudiant"><br>
+            Matricule Etudiant: <input type="text" name="matricule_etudiant"><br>
+            Moyenne: <input type="text" name="moyenne"><br>
+            Rang Matière: <input type="text" name="rang_matiere"><br>
+            <input type="submit" value="Submit">
+        </form>
+
+        <div class="mb-6">
+            <label for="imageUpload" class="block text-sm font-medium text-gray-700 mb-2">
+                1. Sélectionnez une image contenant un tableau :
+            </label>
+            <input type="file" id="imageUpload" accept="image/*"
+                   class="block w-full text-sm text-gray-500
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-lg file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-blue-50 file:text-blue-700
+                          hover:file:bg-blue-100
+                          border border-gray-300 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <img id="imagePreview" src="#" alt="Aperçu de l'image" class="mt-4 rounded-lg max-h-60 w-auto mx-auto hidden shadow-md"/>
+        </div>
+
+        <button id="extractButton"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out flex items-center justify-center disabled:opacity-50">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
+            </svg>
+            Extraire les données du tableau
+        </button>
+
+        <div id="loadingIndicator" class="mt-6 text-center hidden">
+            <div class="spinner mx-auto"></div>
+            <p class="text-sm text-gray-600 mt-2">Extraction en cours, veuillez patienter...</p>
+        </div>
+        <div id="messageArea" class="mt-4 text-center text-sm"></div>
+
+        <div id="resultsArea" class="mt-8 hidden">
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">2. Définissez les en-têtes des colonnes :</h2>
+            <p class="text-sm text-gray-600 mb-4">Modifiez les noms des colonnes ci-dessous. Ils apparaîtront comme en-têtes dans votre fichier Excel.</p>
+            <div id="headerInputsContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+                </div>
+
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">3. Prévisualisation des données extraites :</h2>
+            <div id="tablePreviewContainer" class="table-preview-container max-h-80 overflow-auto border border-gray-300 rounded-lg shadow-sm bg-white">
+                <table id="previewTable" class="min-w-full divide-y divide-gray-200 preview-table">
+                    <thead class="bg-gray-50">
+                        </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
+             <p id="noDataMessage" class="text-center text-gray-500 py-4 hidden">Aucune donnée tabulaire n'a été détectée ou extraite.</p>
+
+            <button id="downloadButton"
+                    class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-150 ease-in-out flex items-center justify-center disabled:opacity-50">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Télécharger le fichier Excel (.xlsx)
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreview = document.getElementById('imagePreview');
+        const extractButton = document.getElementById('extractButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const messageArea = document.getElementById('messageArea');
+        const resultsArea = document.getElementById('resultsArea');
+        const headerInputsContainer = document.getElementById('headerInputsContainer');
+        const tablePreviewContainer = document.getElementById('tablePreviewContainer');
+        const previewTable = document.getElementById('previewTable');
+        const noDataMessage = document.getElementById('noDataMessage');
+        const downloadButton = document.getElementById('downloadButton');
+
+        let extractedTableData = [];
+        let base64ImageData = null;
+
+        // Handle image selection and preview
+        imageUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                messageArea.textContent = ''; // Clear previous messages
+                resultsArea.classList.add('hidden'); // Hide results from previous run
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                    base64ImageData = e.target.result.split(',')[1]; // Get base64 part
+                    extractButton.disabled = false;
+                }
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.classList.add('hidden');
+                imagePreview.src = "#";
+                base64ImageData = null;
+                extractButton.disabled = true;
+            }
+        });
+
+        extractButton.disabled = true; // Initially disable if no file
+
+        // --- Gemini API Interaction ---
+        async function callGeminiAPI(prompt, imageData) {
+            const apiKey = "AIzaSyCGmP3xv58RxTzRluHnpUhl69VUY43t7v4"; // API key will be injected by the environment if needed
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            const generationConfig = {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        "extracted_table": {
+                            type: "ARRAY",
+                            description: "An array where each inner array represents a row of the table, and each item in the inner array is a cell value (string).",
+                            items: {
+                                type: "ARRAY",
+                                items: { type: "STRING" }
+                            }
+                        }
+                    },
+                    required: ["extracted_table"]
+                }
+            };
+
+            const payload = {
+                contents: [{
+                    role: "user",
+                    parts: [
+                        { text: prompt },
+                        {
+                            inlineData: {
+                                mimeType: "image/jpeg", // Assuming JPEG, adjust if necessary (e.g. image/png)
+                                data: imageData
+                            }
+                        }
+                    ]
+                }],
+                generationConfig: generationConfig
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.json();
+                    console.error("API Error Response:", errorBody);
+                    throw new Error(`Erreur de l'API Gemini: ${response.status} ${response.statusText}. Détails: ${errorBody?.error?.message || 'Aucun détail'}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0 && result.candidates[0].content.parts[0].text) {
+                    
+                    // The response text is a JSON string, parse it
+                    const jsonResponseText = result.candidates[0].content.parts[0].text;
+                    return JSON.parse(jsonResponseText); // This should match the schema
+                } else {
+                    console.error("Réponse inattendue de l'API:", result);
+                    throw new Error("La réponse de l'API Gemini n'a pas le format attendu ou est vide.");
+                }
+            } catch (error) {
+                console.error("Erreur lors de l'appel à l'API Gemini:", error);
+                throw error; // Re-throw to be caught by the caller
+            }
+        }
+
+        // --- Main Extraction Logic ---
+        extractButton.addEventListener('click', async () => {
+            if (!base64ImageData) {
+                showMessage("Veuillez d'abord sélectionner une image.", "text-red-600");
+                return;
+            }
+
+            setLoadingState(true);
+            showMessage("Extraction des données en cours...", "text-blue-600");
+            resultsArea.classList.add('hidden');
+            noDataMessage.classList.add('hidden');
+            tablePreviewContainer.classList.remove('hidden');
+
+
+            const promptToGemini = `Analyze the provided image and extract any tabular data. 
+Return the data as a JSON object matching the following schema. 
+The 'extracted_table' key should contain an array of arrays, where each inner array represents a row of the table and contains strings for cell values. 
+Do not include headers in this 'extracted_table'; focus only on the data rows. 
+If no table is detected, return an empty array for 'extracted_table'.`;
+
+            try {
+                const structuredResponse = await callGeminiAPI(promptToGemini, base64ImageData);
+                extractedTableData = structuredResponse.extracted_table || [];
+
+                if (extractedTableData.length > 0) {
+                    displayExtractedData(extractedTableData);
+                    showMessage("Données extraites avec succès. Veuillez définir les en-têtes.", "text-green-600");
+                    resultsArea.classList.remove('hidden');
+                    downloadButton.disabled = false;
+                } else {
+                    showMessage("Aucune donnée tabulaire n'a pu être extraite de l'image ou le tableau est vide.", "text-orange-600");
+                    resultsArea.classList.remove('hidden'); // Show results area to display no data message
+                    tablePreviewContainer.classList.add('hidden');
+                    noDataMessage.classList.remove('hidden');
+                    headerInputsContainer.innerHTML = ''; // Clear any old headers
+                    previewTable.querySelector('thead').innerHTML = '';
+                    previewTable.querySelector('tbody').innerHTML = '';
+                    downloadButton.disabled = true;
+                }
+            } catch (error) {
+                console.error("Erreur lors de l'extraction:", error);
+                showMessage(`Erreur: ${error.message}`, "text-red-600");
+                extractedTableData = []; // Reset data on error
+                downloadButton.disabled = true;
+                 resultsArea.classList.add('hidden');
+            } finally {
+                setLoadingState(false);
+            }
+        });
+
+        // --- Display Data and Header Inputs ---
+        function displayExtractedData(data) {
+            headerInputsContainer.innerHTML = ''; // Clear previous inputs
+            const tableHead = previewTable.querySelector('thead');
+            const tableBody = previewTable.querySelector('tbody');
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                tablePreviewContainer.classList.add('hidden');
+                noDataMessage.classList.remove('hidden');
+                downloadButton.disabled = true;
+                return;
+            }
+            
+            tablePreviewContainer.classList.remove('hidden');
+            noDataMessage.classList.add('hidden');
+
+            const numCols = data[0] ? data[0].length : 0;
+            if (numCols === 0) {
+                 tablePreviewContainer.classList.add('hidden');
+                noDataMessage.classList.remove('hidden');
+                downloadButton.disabled = true;
+                return;
+            }
+
+
+            const headerRow = document.createElement('tr');
+            for (let i = 0; i < numCols; i++) {
+                // Create input for header
+                const inputDiv = document.createElement('div');
+                inputDiv.classList.add('flex', 'flex-col');
+
+                const label = document.createElement('label');
+                label.htmlFor = `header-${i}`;
+                label.textContent = `En-tête Col. ${i + 1}:`;
+                label.classList.add('text-xs', 'text-gray-600', 'mb-1');
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.id = `header-${i}`;
+                input.placeholder = `Colonne ${i + 1}`;
+                input.classList.add('header-input', 'mt-1', 'block', 'w-full', 'rounded-md', 'border-gray-300', 'shadow-sm', 'focus:border-indigo-300', 'focus:ring', 'focus:ring-indigo-200', 'focus:ring-opacity-50', 'p-2', 'text-sm');
+                input.value = `Colonne ${i + 1}`; // Default value
+                input.addEventListener('input', updatePreviewHeaders); // Update preview on input
+                
+                inputDiv.appendChild(label);
+                inputDiv.appendChild(input);
+                headerInputsContainer.appendChild(inputDiv);
+
+                // Create th for preview table
+                const th = document.createElement('th');
+                th.scope = "col";
+                th.classList.add('px-3', 'py-3', 'text-left', 'text-xs', 'font-medium', 'text-gray-500', 'uppercase', 'tracking-wider');
+                th.textContent = input.value; // Initial header from default input value
+                headerRow.appendChild(th);
+            }
+            tableHead.appendChild(headerRow);
+
+            // Populate table body
+            data.forEach(rowData => {
+                const tr = document.createElement('tr');
+                rowData.forEach(cellData => {
+                    const td = document.createElement('td');
+                    td.textContent = cellData;
+                    td.classList.add('px-3', 'py-2', 'whitespace-nowrap', 'text-sm', 'text-gray-700');
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            });
+            downloadButton.disabled = false;
+        }
+        
+        function updatePreviewHeaders() {
+            const headerInputs = document.querySelectorAll('.header-input');
+            const previewHeaderCells = previewTable.querySelectorAll('thead th');
+            headerInputs.forEach((input, index) => {
+                if (previewHeaderCells[index]) {
+                    previewHeaderCells[index].textContent = input.value || `Colonne ${index + 1}`;
+                }
+            });
+        }
+
+
+        // --- Excel Generation and Download ---
+        downloadButton.addEventListener('click', () => {
+            if (extractedTableData.length === 0) {
+                showMessage("Aucune donnée à télécharger.", "text-orange-600");
+                return;
+            }
+
+            const headers = Array.from(document.querySelectorAll('.header-input')).map(input => input.value || input.placeholder);
+            
+            // Create worksheet: headers first, then data
+            const ws_data = [headers, ...extractedTableData];
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            
+            // Create workbook and add the worksheet
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Tableau Extrait");
+
+            // Generate Excel file and trigger download
+            try {
+                XLSX.writeFile(wb, "tableau_extrait.xlsx");
+                showMessage("Fichier Excel généré et téléchargé.", "text-green-600");
+            } catch (error) {
+                console.error("Erreur lors de la génération du fichier Excel:", error);
+                showMessage("Erreur lors de la génération du fichier Excel.", "text-red-600");
+            }
+        });
+        
+        downloadButton.disabled = true; // Initially disable download
+
+        // --- Utility Functions ---
+        function setLoadingState(isLoading) {
+            if (isLoading) {
+                loadingIndicator.classList.remove('hidden');
+                extractButton.disabled = true;
+                extractButton.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                loadingIndicator.classList.add('hidden');
+                extractButton.disabled = false;
+                 extractButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function showMessage(msg, className = 'text-gray-700') {
+            messageArea.textContent = msg;
+            messageArea.className = `mt-4 text-center text-sm ${className}`; // Reset classes and apply new one
+        }
+
+    </script>
+</body>
+</html>
